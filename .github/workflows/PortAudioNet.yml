@@ -56,6 +56,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Workaround for https://github.com/MochiLibraries/Biohazrd/issues/248
+      - name: Install libtinfo5
+        if: matrix.rid == 'linux-x64'
+        run: sudo apt-get install libtinfo5 -y
+
       # ----------------------------------------------------------------------- Configure build
       - name: Configure build
         run: python .github/workflows/configure-build.py
@@ -81,7 +86,7 @@ jobs:
 
       # Currently the generated output for Windows is comitted to the repository, so we don't expect changes
       - name: Ensure the generated output did not change on Windows
-        if: ${{matrix.platform.rid == 'win-x64'}}
+        if: matrix.rid == 'win-x64'
         run: git diff --exit-code
 
       # ----------------------------------------------------------------------- Build PortAudioNet
@@ -112,10 +117,10 @@ jobs:
       - name: Smoke test modern .NET (Release)
         run: dotnet run --project Samples/ListDevices --framework net8.0 --configuration Release
       - name: Smoke test .NET Framework (Debug)
-        if: ${{matrix.platform.rid == 'win-x64'}}
+        if: matrix.rid == 'win-x64'
         run: dotnet run --project Samples/ListDevices --framework net472 --configuration Debug
       - name: Smoke test .NET Framework (Release)
-        if: ${{matrix.platform.rid == 'win-x64'}}
+        if: matrix.rid == 'win-x64'
         run: dotnet run --project Samples/ListDevices --framework net472 --configuration Release
 
       # ----------------------------------------------------------------------- Ensure everything else builds
