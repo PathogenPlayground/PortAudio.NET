@@ -187,7 +187,7 @@ jobs:
       # ----------------------------------------------------------------------- Upload release assets
       - name: Upload release assets
         if: github.event_name == 'release'
-        run: gh release upload ${{github.event.release.tag_name}} Packages/**/*.nupkg --clobber -R ${{github.repository_owner}}
+        run: gh release upload ${{github.event.release.tag_name}} Packages/**/*.nupkg --clobber -R ${{github.repository}}
         env:
           GH_TOKEN: ${{github.token}}
 
