@@ -86,7 +86,7 @@ jobs:
         id: generate
         run: ${{matrix.generate-command}}
 
-      - name: TEMP: TEST ENSURE
+      - name: TEMP TEST ENSURE
         run: echo "HEKC" >> PortAudioNet/#Generated/Diagnostics.log
 
       # Currently the generated output for Windows is comitted to the repository, so we don't expect changes
