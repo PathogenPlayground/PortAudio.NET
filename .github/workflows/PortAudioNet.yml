@@ -140,36 +140,3 @@ jobs:
           name: Generated-${{matrix.rid}}
           if-no-files-found: error
           path: PortAudioNet/#Generated/**
-
-  # =====================================================================================================================================================================
-  # Publish NuGet Packages to GitHub
-  # =====================================================================================================================================================================
-  publish-packages-github:
-    name: Publish to GitHub
-    runs-on: ubuntu-latest
-    needs: [build-mochi-dearimgui, pack-multiplatform-packages]
-    # Pushes always publish CI packages (configure-build.py will add the branch name to the version string for branches besides main)
-    # Published releases always publish packages
-    # A manual workflow only publishes packages if explicitly enabled
-    if: github.event_name == 'push' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.will_publish_packages == 'true')
-    steps:
-      # ----------------------------------------------------------------------- Setup .NET
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: 6.0.x
-
-      # ----------------------------------------------------------------------- Download built packages
-      - name: Download built packages
-        uses: actions/download-artifact@v2
-        with:
-          name: Packages
-      - name: Extract built packages
-        run: for archive in Mochi.DearImGui-packages-*.tar.gz; do tar --keep-old-files -xvf "$archive"; done
-
-      # ----------------------------------------------------------------------- Push to GitHub Packages
-      - name: Push to GitHub Packages
-        run: dotnet nuget push "packages/*.nupkg" --skip-duplicate --no-symbols --api-key ${{secrets.GITHUB_TOKEN}} --source https://nuget.pkg.github.com/${{github.repository_owner}}
-        env:
-          # This is a workaround for https://github.com/NuGet/Home/issues/9775
-          DOTNET_SYSTEM_NET_HTTP_USESOCKETSHTTPHANDLER: 0
