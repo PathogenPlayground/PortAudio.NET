@@ -59,7 +59,9 @@ jobs:
       # Workaround for https://github.com/MochiLibraries/Biohazrd/issues/248
       - name: Install libtinfo5
         if: matrix.rid == 'linux-x64'
-        run: sudo apt-get install libtinfo5 -y
+        run: |
+          sudo apt-get update
+          sudo apt-get install libtinfo5 -y
 
       # ----------------------------------------------------------------------- Configure build
       - name: Configure build
@@ -83,6 +85,9 @@ jobs:
       - name: Generate PortAudioNet
         id: generate
         run: ${{matrix.generate-command}}
+
+      - name: TEMP: TEST ENSURE
+        run: echo "HEKC" >> PortAudioNet/#Generated/Diagnostics.log
 
       # Currently the generated output for Windows is comitted to the repository, so we don't expect changes
       - name: Ensure the generated output did not change on Windows
