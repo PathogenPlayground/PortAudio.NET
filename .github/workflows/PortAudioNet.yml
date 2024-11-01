@@ -181,7 +181,7 @@ jobs:
       # ----------------------------------------------------------------------- Upload release assets
       - name: Upload release assets
         if: github.event_name == 'release'
-        run: gh release upload ${{github.event.release.tag_name}} Packages/*.nupkg --clobber
+        run: gh release upload ${{github.event.release.tag_name}} Packages/**/*.nupkg --clobber
         env:
           GH_TOKEN: ${{github.token}}
 
@@ -199,7 +199,7 @@ jobs:
     name: Publish to NuGet.org
     runs-on: ubuntu-latest
     needs: [build]
-    environment: NuGet.org
+    environment: PublicRelease
     # Release builds always publish packages to NuGet.org
     # Workflow dispatch builds will only publish packages if enabled and an explicit version number is given
     # Make sure this logic matches configure-build.py to ensure we don't accidentally depend on sibling CI pre-release packages
