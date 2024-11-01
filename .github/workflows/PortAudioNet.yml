@@ -31,10 +31,12 @@ jobs:
           - name: Windows x64
             os: windows-latest
             rid: win-x64
+            native-build-command: ./PortAudioNet.Native/build-native.cmd
             generate-command: ./generate.cmd
           - name: Linux x64
             os: ubuntu-22.04
             rid: linux-x64
+            native-build-command: ./PortAudioNet.Native/build-native.sh
             generate-command: ./generate.sh
     name: ${{matrix.name}}
     runs-on: ${{matrix.os}}
@@ -73,6 +75,10 @@ jobs:
           release_version: ${{github.event.release.tag_name}}
           workflow_dispatch_version: ${{github.event.inputs.version}}
           workflow_dispatch_will_publish_packages: ${{github.event.inputs.will_publish_packages}}
+
+      # ----------------------------------------------------------------------- Build native library
+      - name: Build native library
+        run: ${{matrix.native-build-command}}
 
       # ----------------------------------------------------------------------- Generate PortAudioNet
       - name: Restore PortAudioNet.Generator
