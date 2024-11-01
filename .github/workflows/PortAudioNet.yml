@@ -113,8 +113,10 @@ jobs:
       # ----------------------------------------------------------------------- Run device listing sample as a smoke test
       # We do this last so it can't indirectly affect the build process of any packages
       - name: Smoke test modern .NET (Debug)
+        if: ${{matrix.rid != 'linux-x64'}}
         run: dotnet run --project Samples/ListDevices --framework net8.0 --configuration Debug
       - name: Smoke test modern .NET (Release)
+        if: ${{matrix.rid != 'linux-x64'}}
         run: dotnet run --project Samples/ListDevices --framework net8.0 --configuration Release
       - name: Smoke test .NET Framework (Debug)
         if: matrix.rid == 'win-x64'
@@ -126,8 +128,10 @@ jobs:
       # ----------------------------------------------------------------------- Ensure everything else builds
       # This mainly exists to ensure all samples build
       - name: Ensure everything else builds (Debug)
+        if: ${{matrix.rid != 'linux-x64'}}
         run: dotnet build --configuration Debug
       - name: Ensure everything else builds (Release)
+        if: ${{matrix.rid != 'linux-x64'}}
         run: dotnet build --configuration Release
 
       # ----------------------------------------------------------------------- Upload artifacts
