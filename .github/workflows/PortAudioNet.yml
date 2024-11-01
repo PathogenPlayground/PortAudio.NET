@@ -73,15 +73,7 @@ jobs:
         run: dotnet restore PortAudioNet.Generator
 
       - name: Build PortAudioNet.Generator
-        run: dotnet build PortAudioNet.Generator --configuration Release -bl
-
-      - name: Collect binlog
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: binlog-${{matrix.rid}}
-          if-no-files-found: error
-          path: msbuild.binlog
+        run: dotnet build PortAudioNet.Generator --configuration Release
 
       - name: Generate PortAudioNet
         id: generate
