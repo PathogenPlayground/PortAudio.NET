@@ -86,9 +86,6 @@ jobs:
         id: generate
         run: ${{matrix.generate-command}}
 
-      - name: TEMP TEST ENSURE
-        run: echo "HEKC" >> PortAudioNet/#Generated/Diagnostics.log
-
       # Currently the generated output for Windows is comitted to the repository, so we don't expect changes
       - name: Ensure the generated output did not change on Windows
         if: matrix.rid == 'win-x64'
