@@ -70,7 +70,6 @@ jobs:
           github_event_name: ${{github.event_name}}
           github_ref: ${{github.ref}}
           github_run_number: ${{github.run_number}}
-          release_is_prerelease: ${{github.event.release.prerelease}}
           release_version: ${{github.event.release.tag_name}}
           workflow_dispatch_version: ${{github.event.inputs.version}}
           workflow_dispatch_will_publish_packages: ${{github.event.inputs.will_publish_packages}}

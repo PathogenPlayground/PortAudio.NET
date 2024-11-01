@@ -68,16 +68,6 @@ if github_event_name == 'release':
 
     # Trim leading v off of version if present
     version = version.strip('v')
-
-    release_is_prerelease = get_environment_variable('release_is_prerelease')
-    if release_is_prerelease != 'true' and release_is_prerelease != 'false':
-        gha.print_error('Release prerelease status was invalid or unspecified!')
-
-    # There are steps within the workflow which assume that the prerelease state of the release is correct, so we ensure it is
-    # We could implicitly detect things for those steps, but this situation probably indicates user error and handling it this way is easier
-    if nuget.is_preview_version(version) and release_is_prerelease != 'true':
-        gha.print_error(f"The version to be release '{version}' indicates a pre-release version, but the release is not marked as a pre-release!")
-        sys.exit(1)
 elif github_event_name == 'workflow_dispatch':
     workflow_dispatch_version = get_environment_variable('workflow_dispatch_version')
     workflow_dispatch_will_publish_packages = get_environment_variable('workflow_dispatch_will_publish_packages') or 'false'
