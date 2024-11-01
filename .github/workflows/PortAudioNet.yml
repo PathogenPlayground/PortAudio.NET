@@ -1,0 +1,175 @@
+name: PortAudio.NET
+on:
+  push:
+    # This prevents tag pushes from triggering this workflow
+    branches: ['*']
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version"
+        default: ""
+      will_publish_packages:
+        description: "Publish packages?"
+        default: "false"
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: false
+  ContinuousIntegrationBuild: true
+jobs:
+  # =====================================================================================================================================================================
+  # Build and package
+  # =====================================================================================================================================================================
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            rid: win-x64
+            generate-command: ./generate.cmd
+          - name: Linux x64
+            os: ubuntu-22.04
+            rid: linux-x64
+            generate-command: ./generate.sh
+    name: ${{matrix.name}}
+    runs-on: ${{matrix.os}}
+    steps:
+      # ----------------------------------------------------------------------- Checkout
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # ----------------------------------------------------------------------- Setup tools
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ----------------------------------------------------------------------- Configure build
+      - name: Configure build
+        run: python .github/workflows/configure-build.py
+        env:
+          github_event_name: ${{github.event_name}}
+          github_ref: ${{github.ref}}
+          github_run_number: ${{github.run_number}}
+          release_is_prerelease: ${{github.event.release.prerelease}}
+          release_version: ${{github.event.release.tag_name}}
+          workflow_dispatch_version: ${{github.event.inputs.version}}
+          workflow_dispatch_will_publish_packages: ${{github.event.inputs.will_publish_packages}}
+
+      # ----------------------------------------------------------------------- Generate PortAudioNet
+      - name: Restore PortAudioNet.Generator
+        run: dotnet restore PortAudioNet.Generator
+
+      - name: Build PortAudioNet.Generator
+        run: dotnet build PortAudioNet.Generator --configuration Release
+
+      - name: Generate PortAudioNet
+        run: ${{matrix.generate-command}}
+
+      # Currently the generated output for Windows is comitted to the repository, so we don't expect changes
+      - name: Ensure the generated output did not change on Windows
+        if: matrix.platform.rid == 'win-x64'
+        run: git diff --exit-code
+
+      # ----------------------------------------------------------------------- Build PortAudioNet
+      - name: Restore PortAudioNet
+        run: dotnet restore PortAudioNet
+
+      - name: Build PortAudioNet
+        run: dotnet build PortAudioNet --no-restore --configuration Release
+
+      # ----------------------------------------------------------------------- Pack PortAudioNet
+      - name: Pack PortAudioNet
+        run: dotnet pack PortAudioNet --no-build --configuration Release
+
+      # ----------------------------------------------------------------------- Pack PortAudioNet.Native variants
+      - name: Restore PortAudioNet
+        run: dotnet restore PortAudioNet.Native --runtime ${{matrix.rid}}
+
+      - name: Pack PortAudioNet.Native.${{matrix.rid}}-debug
+        run: dotnet pack PortAudioNet.Native --no-build --configuration Debug /p:RuntimeIdentifier=${{matrix.rid}}
+      - name: Pack PortAudioNet.Native.${{matrix.rid}}
+        run: dotnet pack PortAudioNet.Native --no-build --configuration Release /p:RuntimeIdentifier=${{matrix.rid}}
+
+      # ----------------------------------------------------------------------- Run device listing sample as a smoke test
+      # We do this last so it can't indirectly affect the build process of any packages
+      - name: Smoke test modern .NET (Debug)
+        run: dotnet run --project Samples/ListDevices --framework net8.0 --configuration Debug
+      - name: Smoke test modern .NET (Release)
+        run: dotnet run --project Samples/ListDevices --framework net8.0 --configuration Release
+      - name: Smoke test .NET Framework (Debug)
+        if: matrix.platform.rid == 'win-x64'
+        run: dotnet run --project Samples/ListDevices --framework net472 --configuration Debug
+      - name: Smoke test .NET Framework (Release)
+        if: matrix.platform.rid == 'win-x64'
+        run: dotnet run --project Samples/ListDevices --framework net472 --configuration Release
+
+      # ----------------------------------------------------------------------- Ensure everything else builds
+      # This mainly exists to ensure all samples build
+      - name: Ensure everything else builds (Debug)
+        run: dotnet build --configuration Debug
+      - name: Ensure everything else builds (Release)
+        run: dotnet build --configuration Release
+
+      # ----------------------------------------------------------------------- Upload artifacts
+      # All of these steps ignore failure so that we get what artifacts are available when things are broken
+      - name: Collect NuGet packages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Packages-${{matrix.rid}}
+          if-no-files-found: error
+          path: artifacts/package/**
+
+      - name: Collect generated output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Generated-${{matrix.rid}}
+          if-no-files-found: error
+          path: PortAudioNet/#Generated/**
+
+  # =====================================================================================================================================================================
+  # Publish NuGet Packages to GitHub
+  # =====================================================================================================================================================================
+  publish-packages-github:
+    name: Publish to GitHub
+    runs-on: ubuntu-latest
+    needs: [build-mochi-dearimgui, pack-multiplatform-packages]
+    # Pushes always publish CI packages (configure-build.py will add the branch name to the version string for branches besides main)
+    # Published releases always publish packages
+    # A manual workflow only publishes packages if explicitly enabled
+    if: github.event_name == 'push' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.will_publish_packages == 'true')
+    steps:
+      # ----------------------------------------------------------------------- Setup .NET
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
+
+      # ----------------------------------------------------------------------- Download built packages
+      - name: Download built packages
+        uses: actions/download-artifact@v2
+        with:
+          name: Packages
+      - name: Extract built packages
+        run: for archive in Mochi.DearImGui-packages-*.tar.gz; do tar --keep-old-files -xvf "$archive"; done
+
+      # ----------------------------------------------------------------------- Push to GitHub Packages
+      - name: Push to GitHub Packages
+        run: dotnet nuget push "packages/*.nupkg" --skip-duplicate --no-symbols --api-key ${{secrets.GITHUB_TOKEN}} --source https://nuget.pkg.github.com/${{github.repository_owner}}
+        env:
+          # This is a workaround for https://github.com/NuGet/Home/issues/9775
+          DOTNET_SYSTEM_NET_HTTP_USESOCKETSHTTPHANDLER: 0
