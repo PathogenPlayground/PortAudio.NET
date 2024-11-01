@@ -3,4 +3,7 @@
     <TargetFrameworks>net8.0;net472</TargetFrameworks>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PortAudioNet.Native\PortAudioNet.Native.csproj" />
+  </ItemGroup>
 </Project>
