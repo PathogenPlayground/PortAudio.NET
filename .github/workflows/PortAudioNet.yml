@@ -98,6 +98,10 @@ jobs:
 
       # ----------------------------------------------------------------------- Build PortAudioNet
       - name: Restore PortAudioNet
+        # This is a workaround for the fact that the NuGet package name of Mochi.DearImGui.Native changes depending on the configuration.
+        # Ideally we'd just manually specify the dependency but NuGet makes that really annoying to do. See https://github.com/NuGet/Home/issues/8133
+        env:
+          Configuration: Release
         run: dotnet restore PortAudioNet
 
       - name: Build PortAudioNet
